@@ -24,6 +24,7 @@ public class ListaProdutosActivity extends AppCompatActivity {
     private static final String TITULO_APPBAR = "Lista de produtos";
     private ListaProdutosAdapter adapter;
     private ProdutoDAO dao;
+    private ProdutoRepository produtoRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,15 +38,14 @@ public class ListaProdutosActivity extends AppCompatActivity {
         EstoqueDatabase db = EstoqueDatabase.getInstance(this);
         dao = db.getProdutoDAO();
 
-        ProdutoRepository produtoRepository = new ProdutoRepository(dao);
-        produtoRepository.buscaProdutos(new ProdutoRepository.ProdutoCarregadoListener() {
+        produtoRepository = new ProdutoRepository(dao);
+        produtoRepository.buscaProdutos(new ProdutoRepository.DadosCarregadosListener<List<Produto>>() {
             @Override
-            public void quandoCarregado(List<Produto> produtos) {
-                adapter.atualiza(produtos);
+            public void quandoCarregado(List<Produto> produto) {
+                adapter.atualiza(produto);
             }
         });
     }
-
 
     private void configuraListaProdutos() {
         RecyclerView listaProdutos = findViewById(R.id.activity_lista_produtos_lista);
@@ -69,16 +69,7 @@ public class ListaProdutosActivity extends AppCompatActivity {
     }
 
     private void abreFormularioSalvaProduto() {
-        new SalvaProdutoDialog(this, this::salva).mostra();
-    }
-
-    private void salva(Produto produto) {
-        new BaseAsyncTask<>(() -> {
-            long id = dao.salva(produto);
-            return dao.buscaProduto(id);
-        }, produtoSalvo ->
-                adapter.adiciona(produtoSalvo))
-                .execute();
+        new SalvaProdutoDialog(this, produtoCriado -> produtoRepository.salva(produtoCriado, adapter::adiciona)).mostra();
     }
 
     private void abreFormularioEditaProduto(int posicao, Produto produto) {
