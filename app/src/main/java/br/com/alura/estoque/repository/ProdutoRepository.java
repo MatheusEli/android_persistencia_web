@@ -11,15 +11,18 @@ import br.com.alura.estoque.model.Produto;
 import br.com.alura.estoque.retrofit.EstoqueRetrofit;
 import br.com.alura.estoque.retrofit.service.ProdutoService;
 import retrofit2.Call;
+import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ProdutoRepository {
 
 
     private final ProdutoDAO dao;
+    private final ProdutoService service;
 
     public ProdutoRepository(ProdutoDAO dao) {
         this.dao = dao;
+        service = new EstoqueRetrofit().getProdutoService();
     }
 
     public void buscaProdutos(DadosCarregadosListener<List<Produto>> listener) {
@@ -35,10 +38,7 @@ public class ProdutoRepository {
     }
 
     private void buscaProdutosNaApi(DadosCarregadosListener<List<Produto>> listener) {
-
-        ProdutoService service = new EstoqueRetrofit().getProdutoService();
         Call<List<Produto>> call = service.buscaTodos();
-
         new BaseAsyncTask<>(() -> {
             try {
                 Response<List<Produto>> resposta = call.execute();
@@ -53,11 +53,25 @@ public class ProdutoRepository {
     }
 
     public void salva(Produto produto, DadosCarregadosListener<Produto> listener) {
-        new BaseAsyncTask<>(() -> {
-            long id = dao.salva(produto);
-            return dao.buscaProduto(id);
-        }, listener::quandoCarregado)
-                .execute();
+
+        Call<Produto> call = service.salva(produto);
+        call.enqueue(new Callback<Produto>() {
+            @Override
+            public void onResponse(Call<Produto> call, Response<Produto> response) {
+                Produto produtoSalvo = response.body();
+                new BaseAsyncTask<>(() -> {
+                    long id = dao.salva(produtoSalvo);
+                    return dao.buscaProduto(id);
+                }, listener::quandoCarregado)
+                        .execute();
+            }
+
+            @Override
+            public void onFailure(Call<Produto> call, Throwable t) {
+
+            }
+        });
+
     }
 
     public interface DadosCarregadosListener<T>{
