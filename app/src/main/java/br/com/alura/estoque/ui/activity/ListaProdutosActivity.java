@@ -40,10 +40,17 @@ public class ListaProdutosActivity extends AppCompatActivity {
         dao = db.getProdutoDAO();
 
         produtoRepository = new ProdutoRepository(dao);
-        produtoRepository.buscaProdutos(new ProdutoRepository.DadosCarregadosListener<List<Produto>>() {
+        produtoRepository.buscaProdutos(new ProdutoRepository.DadosCarregadosCallback<List<Produto>>() {
             @Override
-            public void quandoCarregado(List<Produto> produto) {
-                adapter.atualiza(produto);
+            public void quandoSucesso(List<Produto> resultado) {
+                adapter.atualiza(resultado);
+            }
+
+            @Override
+            public void quandoFalha(String erro) {
+                Toast.makeText(ListaProdutosActivity.this,
+                        "Não foi possivel carregar os produtos novos",
+                        Toast.LENGTH_SHORT).show();
             }
         });
     }
